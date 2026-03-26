@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+opencv-python
+tensorflow
+keras
+scikit-learn
+flask
+pillow
+python-docx
+pypdf
+python-dotenv
+pytesseract

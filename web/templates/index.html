@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convo | Convert to Handwriting</title>
+  <style>
+    :root {
+      --bg: #f0f2f7;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #d7deea;
+      --accent: #2b59c3;
+      --accent-dark: #1f47a1;
+      --soft-blue: #eef4ff;
+      --soft-gold: #fff4d6;
+      --success: #1f8a70;
+      --paper-shadow: 0 14px 30px rgba(26, 33, 52, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 5%, #dcefe4 0%, transparent 35%),
+        linear-gradient(180deg, #f7f8fc 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    .landing {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #0d5f6d, #113a63);
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .landing--hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .landing-title {
+      color: #ffffff;
+      font-family: "Brush Script MT", "Segoe Script", cursive;
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 3px solid rgba(255, 255, 255, 0.9);
+      width: 0;
+      animation: convo-typing 1.7s steps(10, end) forwards, convo-cursor 0.8s step-end infinite;
+    }
+
+    @keyframes convo-typing {
+      from { width: 0; }
+      to { width: 7.4ch; }
+    }
+
+    @keyframes convo-cursor {
+      0%, 100% { border-color: rgba(255, 255, 255, 0.9); }
+      50% { border-color: transparent; }
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      font-family: "Brush Script MT", "Segoe Script", cursive;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .menu {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .menu a {
+      color: var(--muted);
+      text-decoration: none;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .menu a:hover {
+      color: var(--ink);
+      border-color: var(--accent);
+    }
+
+    .menu .premium {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+
+    .wrapper {
+      max-width: 1360px;
+      margin: 1.2rem auto 2rem;
+      padding: 0 1rem;
+    }
+
+    .hero {
+      margin-bottom: 0.9rem;
+      padding: 0.8rem 0.25rem;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.6rem, 2.2vw, 2.3rem);
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 300px 1fr 410px;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: var(--paper-shadow);
+    }
+
+    .panel h3 {
+      margin: 0 0 1rem;
+      font-size: 1.2rem;
+    }
+
+    .paper-picks {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.55rem;
+      margin-bottom: 1rem;
+    }
+
+    .paper-pick {
+      height: 86px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .paper-pick:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(25, 40, 72, 0.16);
+    }
+
+    .paper-pick.active {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    .paper-plain {
+      background: #fcfcfc;
+    }
+
+    .paper-lines {
+      background: repeating-linear-gradient(
+        to bottom,
+        #fdfdfd,
+        #fdfdfd 10px,
+        #d9e6ff 11px,
+        #fdfdfd 12px
+      );
+    }
+
+    .paper-warm {
+      background: #fff7e6;
+    }
+
+    .paper-blue {
+      background: #eef5ff;
+    }
+
+    .paper-grid {
+      background:
+        linear-gradient(to right, rgba(206, 220, 242, 0.7) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(206, 220, 242, 0.7) 1px, transparent 1px),
+        #fbfcff;
+      background-size: 12px 12px;
+    }
+
+    .paper-dots {
+      background:
+        radial-gradient(circle, rgba(184, 198, 220, 0.8) 1px, transparent 1px),
+        #fafcff;
+      background-size: 12px 12px;
+    }
+
+    .style-picks {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    .style-pick {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.55rem 0.45rem;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .style-pick.active {
+      border-color: var(--accent);
+      color: #fff;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+    }
+
+    #convert-form {
+      display: grid;
+      gap: 0.7rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .mode-btn {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 0.6rem 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .mode-btn.active {
+      color: #fff;
+      border-color: var(--accent-dark);
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+    }
+
+    .mode-section {
+      display: block;
+    }
+
+    .mode-section.hidden {
+      display: none;
+    }
+
+    #file-input {
+      padding: 0.58rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
+    #handwritten-image-input {
+      padding: 0.58rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: #fff;
+      width: 100%;
+      margin-bottom: 0.7rem;
+    }
+
+    .convert-btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 0.78rem 1rem;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      font-size: 1.03rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .editor-sheet {
+      margin-top: 0.8rem;
+      background: var(--soft-blue);
+      border: 1px solid #c8d8fb;
+      border-radius: 12px;
+      padding: 0.85rem;
+    }
+
+    .editor-sheet h4 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+
+    .doc-preview {
+      margin-top: 0.35rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.8rem;
+      min-height: 180px;
+      max-height: 340px;
+      overflow: auto;
+      background: #fff;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-family: "Cambria", "Times New Roman", serif;
+      font-size: 1rem;
+    }
+
+    .output-status {
+      margin-top: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .preview-head {
+      background: var(--soft-gold);
+      border: 1px solid #f1dc9f;
+      color: #8b5e00;
+      padding: 0.6rem 0.8rem;
+      border-radius: 10px;
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+    }
+
+    #synth-image {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      min-height: 200px;
+      object-fit: contain;
+    }
+
+    .download-actions {
+      display: none;
+      margin-top: 0.8rem;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .download-actions.show {
+      display: flex;
+    }
+
+    .download-btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 0.68rem 0.9rem;
+      background: var(--success);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+
+    .info-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: var(--paper-shadow);
+    }
+
+    .info-card h2 {
+      margin-top: 0;
+      font-size: 1.15rem;
+    }
+
+    .info-card p,
+    .info-card li {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu {
+        display: none;
+      }
+
+      .topbar {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="landing" id="landing">
+    <h1 class="landing-title">Convo</h1>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">Convo Script</div>
+    <nav class="menu">
+      <a href="#home">Home</a>
+      <a href="#templates">Templates</a>
+      <a href="#how-to-use">How to Use</a>
+      <a href="#contact">Contact</a>
+      <button class="premium" type="button">PREMIUM</button>
+    </nav>
+  </header>
+
+  <main class="wrapper" id="home">
+    <section class="hero" id="templates">
+      <h1>Transform Your File Into Handwriting</h1>
+      <p>Convert typed files into handwriting, or upload handwritten text images and extract editable digital text.</p>
+    </section>
+
+    <section class="grid">
+      <aside class="panel">
+        <h3>Backgrounds</h3>
+        <p class="hint">Choose paper style</p>
+        <div class="paper-picks">
+          <button class="paper-pick paper-plain active" type="button" data-paper="plain" aria-label="Plain paper"></button>
+          <button class="paper-pick paper-lines" type="button" data-paper="lines" aria-label="Lined paper"></button>
+          <button class="paper-pick paper-warm" type="button" data-paper="warm" aria-label="Warm paper"></button>
+          <button class="paper-pick paper-blue" type="button" data-paper="blue" aria-label="Blue paper"></button>
+          <button class="paper-pick paper-grid" type="button" data-paper="grid" aria-label="Grid paper"></button>
+          <button class="paper-pick paper-dots" type="button" data-paper="dots" aria-label="Dotted paper"></button>
+        </div>
+
+        <h3>Handwriting Styles</h3>
+        <p class="hint">Choose writing style</p>
+        <div class="style-picks" id="style-picks">
+          <button class="style-pick active" type="button" data-style="cursive">Cursive</button>
+          <button class="style-pick" type="button" data-style="neat">Neat</button>
+          <button class="style-pick" type="button" data-style="marker">Marker</button>
+          <button class="style-pick" type="button" data-style="mono">Mono</button>
+          <button class="style-pick" type="button" data-style="signature">Signature</button>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="mode-switch">
+          <button class="mode-btn active" id="mode-doc-to-handwriting" type="button">File to Handwriting</button>
+          <button class="mode-btn" id="mode-handwriting-to-text" type="button">Handwriting to Text</button>
+        </div>
+
+        <section class="mode-section" id="doc-to-handwriting-section">
+          <form id="convert-form">
+            <input type="file" name="file" id="file-input" accept=".txt,.docx,.pdf" required />
+            <button class="convert-btn" type="submit">Convert to Handwriting</button>
+          </form>
+        </section>
+
+        <section class="mode-section hidden" id="handwriting-to-text-section">
+          <form id="handwriting-to-text-form">
+            <input type="file" name="image" id="handwritten-image-input" accept="image/*" required />
+            <button class="convert-btn" type="submit">Convert Handwriting to Digital Text</button>
+          </form>
+        </section>
+
+        <section class="editor-sheet">
+          <h4>Digital Text Document Preview</h4>
+          <div id="doc-preview" class="doc-preview">Upload a file to preview extracted text.</div>
+        </section>
+
+        <p class="output-status" id="synthesize-output">Generated image will appear in the preview panel.</p>
+      </section>
+
+      <section class="panel">
+        <div class="preview-head">Handwriting Preview</div>
+        <img id="synth-image" alt="Generated handwriting" />
+        <div id="download-actions" class="download-actions">
+          <button class="download-btn" type="button" id="download-pdf">Download as PDF</button>
+          <button class="download-btn" type="button" id="download-docx">Download as DOCX</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="info-grid" id="how-to-use">
+      <article class="info-card">
+        <h2>How to Use</h2>
+        <ol>
+          <li>Upload your document (.txt, .docx, or .pdf).</li>
+          <li>Click Convert to Handwriting.</li>
+          <li>Review the extracted text and handwriting preview.</li>
+          <li>Download as PDF or DOCX.</li>
+        </ol>
+      </article>
+
+      <article class="info-card">
+        <h2>Templates</h2>
+        <p>Use paper backgrounds from the left panel to preview your output in different styles before download.</p>
+      </article>
+
+      <article class="info-card" id="contact">
+        <h2>Contact</h2>
+        <p>Email: support@convoscript.local</p>
+        <p>Phone: +91 00000 00000</p>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const landing = document.getElementById("landing");
+
+    window.addEventListener("load", () => {
+      window.setTimeout(() => {
+        landing.classList.add("landing--hidden");
+      }, 2200);
+    });
+
+    const convertForm = document.getElementById("convert-form");
+    const handwritingToTextForm = document.getElementById("handwriting-to-text-form");
+    const synthesizeOutput = document.getElementById("synthesize-output");
+    const synthImage = document.getElementById("synth-image");
+    const fileInput = document.getElementById("file-input");
+    const handwrittenImageInput = document.getElementById("handwritten-image-input");
+    const docPreview = document.getElementById("doc-preview");
+    const downloadActions = document.getElementById("download-actions");
+    const downloadPdfButton = document.getElementById("download-pdf");
+    const downloadDocxButton = document.getElementById("download-docx");
+    const modeDocToHandwritingButton = document.getElementById("mode-doc-to-handwriting");
+    const modeHandwritingToTextButton = document.getElementById("mode-handwriting-to-text");
+    const docToHandwritingSection = document.getElementById("doc-to-handwriting-section");
+    const handwritingToTextSection = document.getElementById("handwriting-to-text-section");
+    const paperButtons = document.querySelectorAll(".paper-pick");
+    const styleButtons = document.querySelectorAll(".style-pick");
+    let extractedText = "";
+    let selectedPaper = "plain";
+    let selectedHandwritingStyle = "cursive";
+    let activeMode = "doc-to-handwriting";
+
+    function setMode(mode) {
+      activeMode = mode;
+      const docActive = mode === "doc-to-handwriting";
+
+      modeDocToHandwritingButton.classList.toggle("active", docActive);
+      modeHandwritingToTextButton.classList.toggle("active", !docActive);
+      docToHandwritingSection.classList.toggle("hidden", !docActive);
+      handwritingToTextSection.classList.toggle("hidden", docActive);
+
+      if (docActive) {
+        synthesizeOutput.textContent = "Generated image will appear in the preview panel.";
+      } else {
+        synthesizeOutput.textContent = "Extracted digital text will appear in the document preview.";
+      }
+    }
+
+    function getCurrentText() {
+      return extractedText.trim();
+    }
+
+    function applyPaperStyle(paper) {
+      if (paper === "lines") {
+        synthImage.style.background = "repeating-linear-gradient(to bottom, #ffffff, #ffffff 10px, #dce6ff 11px, #ffffff 12px)";
+      } else if (paper === "blue") {
+        synthImage.style.background = "#eef5ff";
+      } else if (paper === "grid") {
+        synthImage.style.background = "linear-gradient(to right, rgba(206,220,242,0.7) 1px, transparent 1px), linear-gradient(to bottom, rgba(206,220,242,0.7) 1px, transparent 1px), #fbfcff";
+        synthImage.style.backgroundSize = "12px 12px";
+      } else if (paper === "dots") {
+        synthImage.style.background = "radial-gradient(circle, rgba(184,198,220,0.8) 1px, transparent 1px), #fafcff";
+        synthImage.style.backgroundSize = "12px 12px";
+      } else if (paper === "warm") {
+        synthImage.style.background = "#fff3de";
+      } else {
+        synthImage.style.background = "#ffffff";
+        synthImage.style.backgroundSize = "auto";
+      }
+    }
+
+    paperButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        paperButtons.forEach((el) => el.classList.remove("active"));
+        button.classList.add("active");
+        selectedPaper = button.dataset.paper || "plain";
+        applyPaperStyle(selectedPaper);
+      });
+    });
+
+    styleButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        styleButtons.forEach((el) => el.classList.remove("active"));
+        button.classList.add("active");
+        selectedHandwritingStyle = button.dataset.style || "cursive";
+      });
+    });
+
+    async function downloadGenerated(format) {
+      const text = getCurrentText();
+      if (!text) {
+        synthesizeOutput.textContent = "Upload and convert a file before downloading.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("text", text);
+      formData.append("format", format);
+      formData.append("paperStyle", selectedPaper);
+      formData.append("handwritingStyle", selectedHandwritingStyle);
+
+      const response = await fetch("/download-handwriting", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        synthesizeOutput.textContent = payload.error || "Download failed.";
+        return;
+      }
+
+      const blob = await response.blob();
+      const extension = format === "docx" ? "docx" : "pdf";
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `handwriting_output.${extension}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    downloadPdfButton.addEventListener("click", () => downloadGenerated("pdf"));
+    downloadDocxButton.addEventListener("click", () => downloadGenerated("docx"));
+
+    modeDocToHandwritingButton.addEventListener("click", () => setMode("doc-to-handwriting"));
+    modeHandwritingToTextButton.addEventListener("click", () => setMode("handwriting-to-text"));
+
+    convertForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!fileInput.files.length) {
+        synthesizeOutput.textContent = "Please upload a file first.";
+        return;
+      }
+
+      const formData = new FormData(convertForm);
+      formData.append("paperStyle", selectedPaper);
+      formData.append("handwritingStyle", selectedHandwritingStyle);
+      const response = await fetch("/convert-file", { method: "POST", body: formData });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        synthesizeOutput.textContent = payload.error || "Conversion failed.";
+        downloadActions.classList.remove("show");
+        return;
+      }
+
+      const payload = await response.json();
+      extractedText = payload.extracted_text || "";
+      docPreview.textContent = extractedText || "No text extracted from file.";
+      synthImage.src = payload.image_data;
+      synthesizeOutput.textContent = "Conversion complete.";
+      downloadActions.classList.add("show");
+    });
+
+    handwritingToTextForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!handwrittenImageInput.files.length) {
+        synthesizeOutput.textContent = "Please upload a handwritten image first.";
+        return;
+      }
+
+      const formData = new FormData(handwritingToTextForm);
+      const response = await fetch("/handwriting-to-text", { method: "POST", body: formData });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        synthesizeOutput.textContent = payload.error || "Handwriting to text conversion failed.";
+        downloadActions.classList.remove("show");
+        return;
+      }
+
+      const payload = await response.json();
+      extractedText = payload.extracted_text || "";
+      docPreview.textContent = extractedText || "No readable handwritten text was detected.";
+      synthesizeOutput.textContent = "Handwriting converted to digital text.";
+      downloadActions.classList.remove("show");
+    });
+
+  </script>
+</body>
+</html>
